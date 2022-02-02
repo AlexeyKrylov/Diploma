@@ -27,6 +27,8 @@ public:
 
 	void from_file_txt(std::string filename);
 
+	void change_data(std::vector<double> v);
+
 	void to_file_txt(std::string filename) const;
 
 	~Vector();

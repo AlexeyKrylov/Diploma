@@ -6,7 +6,8 @@ void Initialization_2_1(Matrix& W1, Matrix& W2, Matrix& W3,
 						Matrix& Xv, size_t& N,
 						Matrix& Xgr, size_t& M,
 						Matrix& Xgr1, size_t& M1,
-						Matrix& Xgr2, size_t& M2)
+						Matrix& Xgr2, size_t& M2,
+						Matrix& X_body, Matrix& tau, size_t& M3)
 {
 	std::cout << std::endl;
 	//std::cout << "Start of Initialization_2_1" << std::endl;
@@ -36,12 +37,14 @@ void Initialization_2_1(Matrix& W1, Matrix& W2, Matrix& W3,
 	//t3.PrintVector();
 
 
+	//parsing_weights(W1, t1, W2, t2, W3, t3, "data1_new.bin");
 	//2.1.3
 	std::vector<std::vector<std::pair<double, double>>> grid;
 	for (double i =0; i <= 1.0 + std::numeric_limits<double>::epsilon(); i += lambda)
 	{
 		std::vector<std::pair<double, double>> vec;
-		for (double j =0; j <= 1.0 + std::numeric_limits<double>::epsilon(); j += lambda) vec.push_back(std::make_pair(i, j));
+		for (double j =0; j <= 1.0 + std::numeric_limits<double>::epsilon(); j += lambda) 
+			if ((i - 0.5) * (i - 0.5) + (j - 0.5)*(j - 0.5) > 0.25*0,25) vec.push_back(std::make_pair(i, j));
 		grid.push_back(vec);
 	}
 
@@ -56,6 +59,7 @@ void Initialization_2_1(Matrix& W1, Matrix& W2, Matrix& W3,
 	for (size_t i = 0; i < grid.size(); ++i)
 		for (size_t j = 0; j < grid[0].size(); ++j)
 		{
+
 			x.push_back(grid[i][j].first);
 			y.push_back(grid[i][j].second);
 		}
@@ -126,6 +130,43 @@ void Initialization_2_1(Matrix& W1, Matrix& W2, Matrix& W3,
 
 	//std::cout << "Xgr2: " << std::endl;
 	//Xgr2.PrintMatrix();	
+
+	std::vector<std::vector<double>> vecx_body;
+	std::vector<std::vector<double>> tau_;
+
+	std::ifstream fin("text.txt");
+
+	fin >> M3;
+	std::vector<double> x_phi_body(M3);
+	std::vector<double> y_phi_body(M3);
+	std::vector<double> tau_x(M3);
+	std::vector<double> tau_y(M3);
+
+	for (size_t i = 0; i < M3; ++i)
+		fin >> x_phi_body[i];
+
+	for (size_t i = 0; i < M3; ++i)
+		fin >> y_phi_body[i];
+
+	for (size_t i = 0; i < M3; ++i)
+		fin >> tau_x[i];
+
+	for (size_t i = 0; i < M3; ++i)
+		fin >> tau_y[i];
+
+	fin.close();
+
+	M3 = x_phi_body.size();
+	std::cout << "M3 = " << M3 << std::endl;
+
+	vecx_body = { x_phi_body, y_phi_body };
+	X_body = Matrix(vecx_body); 
+
+	tau_ = { tau_x, tau_y };
+	tau = Matrix(tau_);
+
+	//std::cout << "X_body: " << std::endl;
+	//X_body.PrintMatrix();	
 	//std::cout << "End of Initialization_2_1" << std::endl;
 }
 	
@@ -374,7 +415,7 @@ void BoundaryPoints_2_3(Matrix& W1, Matrix& W2, Matrix& W3,
 	Matrix& dEgr_dt1, Matrix& dEgr_dt2, Matrix& dEgr_dt3,
 	double& Egr, size_t N, size_t M)
 {
-	//std::cout << "Start of BoundaryPoints_2_2" << std::endl;
+	//std::cout << "Start of BoundaryPoints_2_3" << std::endl;
 
 	Matrix Agr(L, M);
 	Matrix Bgr(L, M);
@@ -969,12 +1010,17 @@ void BoundaryPoints_2_32(Matrix& W1, Matrix& W2, Matrix& W3,
 	//Bgryy2.PrintMatrix();
 
 	//2.3.3
-	Egr = ((ugr.get_string(2) + tmp_p2).Mul_by_El(ugr.get_string(2) + tmp_p2) + ugry.get_string(2).Mul_by_El(ugry.get_string(2))).Comprs_by_Col().RetData()[0][0] * (double(N) / double(M)) * 0.5; // (43)
-	std::cout << "Egr2 = " << Egr << std::endl;
+	//Egr = ((ugr.get_string(2) + tmp_p2).Mul_by_El(ugr.get_string(2) + tmp_p2) + ugry.get_string(2).Mul_by_El(ugry.get_string(2))).Comprs_by_Col().RetData()[0][0] * (double(N) / double(M)) * 0.5; // (43)
+	
 
-	//2.3.4
+	//2.3.3
+	Egr = ((ugr.get_string(2) + tmp_p2).Mul_by_El(ugr.get_string(2) + tmp_p2) + ugry.get_string(2).Mul_by_El(ugry.get_string(2)) + ugrx.get_string(0).Mul_by_El(ugrx.get_string(0)) + ugrx.get_string(1).Mul_by_El(ugrx.get_string(1))).Comprs_by_Col().RetData()[0][0] * (double(N) / double(M)) * 0.5; // (43)
+	std::cout << "Egr2 = " << Egr << std::endl;
+																																																																										 //2.3.4
 	dEgr_dugr.write_string((ugr.get_string(2) + tmp_p2) * (double(N) / double(M)), 2);
 	dEgr_dugry.write_string(ugry.get_string(2) * (double(N) / double(M)), 2);
+	dEgr_dugrx.write_string(ugrx.get_string(0)* (double(N) / double(M)), 0);
+	dEgr_dugrx.write_string(ugrx.get_string(1)* (double(N) / double(M)), 1);
 
 	//2.3.5.6
 	dEgr_dW3 = dEgr_dugr * Bgr.sigmoidM().T() + dEgr_dugrx * Bgrx1.T() + dEgr_dugry * Bgry1.T() + dEgr_dugrxx * Bgrxx1.T() + dEgr_dugryy * Bgryy1.T(); // (26)
@@ -1030,6 +1076,229 @@ void BoundaryPoints_2_32(Matrix& W1, Matrix& W2, Matrix& W3,
 	//std::cout << "End of BoundaryPoints_2_22" << std::endl;
 }
 
+
+void BodyPoints(Matrix& W1, Matrix& W2, Matrix& W3,
+	Vector& t1, Vector& t2, Vector& t3,
+	Matrix& Xgr, Matrix& tau, Matrix& dXgr_dx, Matrix& dXgr_dy,
+	Matrix& dEgr_dW1, Matrix& dEgr_dW2, Matrix& dEgr_dW3,
+	Matrix& dEgr_dt1, Matrix& dEgr_dt2, Matrix& dEgr_dt3,
+	double& Egr, size_t N, size_t M)
+{
+	//std::cout << "Start of BodyPoints" << std::endl;
+
+	Matrix Agr(L, M);
+	Matrix Bgr(L, M);
+	Matrix ugr(3, M);
+	Matrix Agrx(L, M);
+	Matrix Agrx1(L, M);
+	Matrix Bgrx(L, M);
+	Matrix Bgrx1(L, M);
+	Matrix ugrx(3, M);
+	Matrix Agrxx1(L, M);
+	Matrix Bgrxx(L, M);
+	Matrix Bgrxx1(L, M);
+	Matrix ugrxx(3, M);
+	Matrix Agrx2(L, M);
+	Matrix Bgrx2(L, M);
+	Matrix Agrxx2(L, M);
+	Matrix Bgrxx2(L, M);
+	Matrix Agry(L, M);
+	Matrix Agry1(L, M);
+	Matrix Bgry(L, M);
+	Matrix Bgry1(L, M);
+	Matrix ugry(3, M);
+	Matrix Agryy1(L, M);
+	Matrix Bgryy(L, M);
+	Matrix Bgryy1(L, M);
+	Matrix ugryy(3, M);
+	Matrix Agry2(L, M);
+	Matrix Bgry2(L, M);
+	Matrix Agryy2(L, M);
+	Matrix Bgryy2(L, M);
+
+	Matrix dEgr_dugrxx(3, M);
+	Matrix dEgr_dugryy(3, M);
+	Matrix dEgr_dugrx(3, M); //        (25)
+	Matrix dEgr_dugry(3, M); //        (25)
+	Matrix dEgr_dugr(3, M); //         (25)
+
+	Matrix dEgr_dBgr(L, M);
+	Matrix dEgr_dBgrx(L, M);
+	Matrix dEgr_dBgrxx(L, M);
+	Matrix dEgr_dBgry(L, M);
+	Matrix dEgr_dBgryy(L, M);
+
+	Matrix dEgr_dAgr(L, M);
+	Matrix dEgr_dAgrx(L, M);
+	Matrix dEgr_dAgry(L, M);
+
+	//2.3 Boundary points
+	//2.3.1 
+	Agr = W1 * Xgr + t1; // (8)
+	//std::cout << "Agr2: " << std::endl;
+	//Agr.PrintMatrix();
+
+	Bgr = W2 * Agr.sigmoidM() + t2; // (9)
+	//std::cout << "Bgr2: " << std::endl;
+	//Bgr.PrintMatrix();
+
+	ugr = W3 * Bgr.sigmoidM() + t3; // (10)
+	//std::cout << "ugr2: " << std::endl;
+	//ugr.PrintMatrix();
+
+
+	//2.3.2	
+	Agrx = W1 * dXgr_dx; //           (11)
+	//std::cout << "Agr2x: " << std::endl;
+	//Agrx.PrintMatrix();
+	Agrx1 = Agr.sigmoidM_p1().Mul_by_El(Agrx);
+	//std::cout << "Agr2x1: " << std::endl;
+	//Agrx1.PrintMatrix();
+	Bgrx = W2 * Agrx1; //              (13)
+	//std::cout << "Bgr2x: " << std::endl;
+	//Bgrx.PrintMatrix();
+	Bgrx1 = Bgr.sigmoidM_p1().Mul_by_El(Bgrx);
+	//std::cout << "Bgr2x1: " << std::endl;
+	//Bgrx1.PrintMatrix();
+	ugrx = W3 * Bgrx1; //              (15)
+	//std::cout << "ugr2x: " << std::endl;
+	//ugrx.PrintMatrix();
+	Agrxx1 = Agr.sigmoidM_p2().Mul_by_El(Agrx).Mul_by_El(Agrx);
+	//std::cout << "Agr2xx1: " << std::endl;
+	//Agrxx1.PrintMatrix();
+	Bgrxx = W2 * Agrxx1; //            (18)
+	//std::cout << "Bgr2xx: " << std::endl;
+	//Bgrxx.PrintMatrix();
+	Bgrxx1 = Bgr.sigmoidM_p2().Mul_by_El(Bgrx).Mul_by_El(Bgrx) + Bgr.sigmoidM_p1().Mul_by_El(Bgrxx);
+	//std::cout << "Bgr2xx1: " << std::endl;
+	//Bgrxx1.PrintMatrix();
+	ugrxx = W3 * Bgrxx1; //            (20)
+	//std::cout << "ugr2xx: " << std::endl;
+	//ugrxx.PrintMatrix();
+	Agrx2 = Agr.sigmoidM_p2().Mul_by_El(Agrx); // (14)
+	//std::cout << "Agr2x2: " << std::endl;
+	//Agrx2.PrintMatrix();
+	Bgrx2 = Bgr.sigmoidM_p2().Mul_by_El(Bgrx);//  (16)
+	//std::cout << "Bgr2x2: " << std::endl;
+	//Bgrx2.PrintMatrix();
+	Agrxx2 = Agr.sigmoidM_p3().Mul_by_El(Agrx).Mul_by_El(Agrx); // (19)
+	//std::cout << "Agr2xx2: " << std::endl;
+	//Agrxx2.PrintMatrix();
+	Bgrxx2 = Bgr.sigmoidM_p3().Mul_by_El(Bgrx).Mul_by_El(Bgrx) + Bgr.sigmoidM_p2().Mul_by_El(Bgrxx); // (21)
+	//std::cout << "Bgr2xx2: " << std::endl;
+	//Bgrxx2.PrintMatrix();
+
+	//2.3.3
+	Agry = W1 * dXgr_dy; //           (11)
+	//std::cout << "Agr2y: " << std::endl;
+	//Agry.PrintMatrix();
+	Agry1 = Agr.sigmoidM_p1().Mul_by_El(Agry);
+	//std::cout << "Agr2y1: " << std::endl;
+	//Agry1.PrintMatrix();
+	Bgry = W2 * Agry1; //              (13)
+	//std::cout << "Bgr2y: " << std::endl;
+	//Bgry.PrintMatrix();
+	Bgry1 = Bgr.sigmoidM_p1().Mul_by_El(Bgry);
+	//std::cout << "Bgr2y1: " << std::endl;
+	//Bgry1.PrintMatrix();
+	ugry = W3 * Bgry1; //              (15)
+	//std::cout << "ugr2y: " << std::endl;
+	//ugry.PrintMatrix();
+	Agryy1 = Agr.sigmoidM_p2().Mul_by_El(Agry).Mul_by_El(Agry);
+	//std::cout << "Agr2yy1: " << std::endl;
+	//Agryy1.PrintMatrix();
+	Bgryy = W2 * Agryy1; //            (18)
+	//std::cout << "Bgr2yy: " << std::endl;
+	//Bgryy.PrintMatrix();
+	Bgryy1 = Bgr.sigmoidM_p2().Mul_by_El(Bgry).Mul_by_El(Bgry) + Bgr.sigmoidM_p1().Mul_by_El(Bgryy);
+	//std::cout << "Bgr2yy1: " << std::endl;
+	//Bgryy1.PrintMatrix();
+	ugryy = W3 * Bgryy1; //            (20)
+	//std::cout << "ugr2yy: " << std::endl;
+	//ugryy.PrintMatrix();
+	Agry2 = Agr.sigmoidM_p2().Mul_by_El(Agry); // (14)
+	//std::cout << "Agr2y2: " << std::endl;
+	//Agry2.PrintMatrix();
+	Bgry2 = Bgr.sigmoidM_p2().Mul_by_El(Bgry);//  (16)
+	//std::cout << "Bgr2y2: " << std::endl;
+	//Bgry2.PrintMatrix();
+	Agryy2 = Agr.sigmoidM_p3().Mul_by_El(Agry).Mul_by_El(Agry); // (19)
+	//std::cout << "Agr2yy2: " << std::endl;
+	//Agryy2.PrintMatrix();
+	Bgryy2 = Bgr.sigmoidM_p3().Mul_by_El(Bgry).Mul_by_El(Bgry) + Bgr.sigmoidM_p2().Mul_by_El(Bgryy); // (21)
+	//std::cout << "Bgr2yy2: " << std::endl;
+	//Bgryy2.PrintMatrix();
+
+	//2.3.3
+	Egr = ((ugr.get_string(0)).Mul_by_El(ugr.get_string(0)) + ugr.get_string(1).Mul_by_El(ugr.get_string(1)) + 
+		(tau.get_string(0).Mul_by_El(ugrx.get_string(0)) + tau.get_string(1).Mul_by_El(ugry.get_string(0))).Mul_by_El(tau.get_string(0).Mul_by_El(ugrx.get_string(0)) + tau.get_string(1).Mul_by_El(ugry.get_string(0))) +
+		(tau.get_string(0).Mul_by_El(ugrx.get_string(1)) + tau.get_string(1).Mul_by_El(ugry.get_string(1))).Mul_by_El(tau.get_string(0).Mul_by_El(ugrx.get_string(1)) + tau.get_string(1).Mul_by_El(ugry.get_string(1)))
+		).Comprs_by_Col().RetData()[0][0] * (double(N) / double(M)) * 0.5 * 10; // (43)
+	std::cout << "E_body = " << Egr << std::endl;
+	//2.3.4
+	dEgr_dugr.write_string(ugr.get_string(0) * (double(N) * 10 / double(M)), 0);
+	dEgr_dugr.write_string(ugr.get_string(1) * (double(N) * 10/ double(M)), 1);
+
+	dEgr_dugrx.write_string(tau.get_string(0).Mul_by_El(tau.get_string(0).Mul_by_El(ugrx.get_string(0)) + tau.get_string(1).Mul_by_El(ugry.get_string(0)))* (double(N) * 10 / double(M)), 0);
+	dEgr_dugry.write_string(tau.get_string(1).Mul_by_El(tau.get_string(0).Mul_by_El(ugrx.get_string(0)) + tau.get_string(1).Mul_by_El(ugry.get_string(0)))* (double(N) * 10 / double(M)), 0);
+	dEgr_dugrx.write_string(tau.get_string(0).Mul_by_El(tau.get_string(0).Mul_by_El(ugrx.get_string(1)) + tau.get_string(1).Mul_by_El(ugry.get_string(1)))* (double(N) * 10/ double(M)), 1);
+	dEgr_dugry.write_string(tau.get_string(1).Mul_by_El(tau.get_string(0).Mul_by_El(ugrx.get_string(1)) + tau.get_string(1).Mul_by_El(ugry.get_string(1)))* (double(N) * 10/ double(M)), 1);
+
+	//2.3.5.6
+	dEgr_dW3 = dEgr_dugr * Bgr.sigmoidM().T() + dEgr_dugrx * Bgrx1.T() + dEgr_dugry * Bgry1.T() + dEgr_dugrxx * Bgrxx1.T() + dEgr_dugryy * Bgryy1.T(); // (26)
+	//std::cout << "dEgr2_dW3: " << std::endl;
+	//dEgr_dW3.PrintMatrix();
+
+	dEgr_dt3 = dEgr_dugr.Comprs_by_Col(); // (27)
+	//std::cout << "dEgr2_dt3: " << std::endl;
+	//dEgr_dt3.PrintMatrix();
+
+	//2.3.5.7
+	dEgr_dBgr = (W3.T() * dEgr_dugr).Mul_by_El(Bgr.sigmoidM_p1()) +
+		(W3.T() * dEgr_dugrx).Mul_by_El(Bgrx2) +
+		(W3.T() * dEgr_dugry).Mul_by_El(Bgry2) +
+		(W3.T() * dEgr_dugrxx).Mul_by_El(Bgrxx2) +
+		(W3.T() * dEgr_dugryy).Mul_by_El(Bgryy2); // (29) 	
+	dEgr_dBgrx = (W3.T() * dEgr_dugrx).Mul_by_El(Bgr.sigmoidM_p1()) + (W3.T() * dEgr_dugrxx).Mul_by_El(Bgrx2) * 2.0; // (30)
+	dEgr_dBgrxx = (W3.T() * dEgr_dugrxx).Mul_by_El(Bgr.sigmoidM_p1()); // (31)
+	dEgr_dBgry = (W3.T() * dEgr_dugry).Mul_by_El(Bgr.sigmoidM_p1()) + (W3.T() * dEgr_dugryy).Mul_by_El(Bgry2) * 2.0; // (32)
+	dEgr_dBgryy = (W3.T() * dEgr_dugryy).Mul_by_El(Bgr.sigmoidM_p1()); // (33)
+
+	//2.3.5.8
+	dEgr_dW2 = dEgr_dBgr * Agr.sigmoidM().T() +
+		dEgr_dBgrx * Agrx1.T() +
+		dEgr_dBgry * Agry1.T() +
+		dEgr_dBgrxx * Agrxx1.T() +
+		dEgr_dBgryy * Agryy1.T(); // (28)
+//std::cout << "dEgr2_dW2: " << std::endl;
+//dEgr_dW2.PrintMatrix();
+
+	dEgr_dt2 = dEgr_dBgr.Comprs_by_Col(); // (34)
+	//std::cout << "dEgr2_dt2: " << std::endl;
+	//dEgr_dt2.PrintMatrix();
+
+	//2.3.5.9
+	dEgr_dAgr = (W2.T() * dEgr_dBgr).Mul_by_El(Agr.sigmoidM_p1()) +
+		(W2.T() * dEgr_dBgrx).Mul_by_El(Agrx2) +
+		(W2.T() * dEgr_dBgry).Mul_by_El(Agry2) +
+		(W2.T() * dEgr_dBgrxx).Mul_by_El(Agrxx2) +
+		(W2.T() * dEgr_dBgryy).Mul_by_El(Agryy2); // (35)
+	dEgr_dAgrx = (W2.T() * dEgr_dBgrx).Mul_by_El(Agr.sigmoidM_p1()) + (W2.T() * dEgr_dBgrxx).Mul_by_El(Agrx2) * 2.0; // (36)
+	dEgr_dAgry = (W2.T() * dEgr_dBgry).Mul_by_El(Agr.sigmoidM_p1()) + (W2.T() * dEgr_dBgryy).Mul_by_El(Agry2) * 2.0; // (37)	
+
+	//2.3.5.10
+	dEgr_dW1 = dEgr_dAgr * Xgr.T() + dEgr_dAgrx * dXgr_dx.T() + dEgr_dAgry * dXgr_dy.T(); // (38)
+	//std::cout << "dEgr2_dW1: " << std::endl;
+	//dEgr_dW1.PrintMatrix();
+
+	dEgr_dt1 = dEgr_dAgr.Comprs_by_Col(); // (39)
+	//std::cout << "dEgr2_dt1: " << std::endl;
+	//dEgr_dt1.PrintMatrix();
+
+	//std::cout << "End of BodyPoints" << std::endl;
+}
+
+
 void UpdateWeights_2_4(Matrix& W1, Matrix& W2, Matrix& W3,
 					   Vector& t1, Vector& t2, Vector& t3,
 					   Matrix& dE_dW1, Matrix& dE_dW2, Matrix& dE_dW3,
@@ -1044,36 +1313,38 @@ void UpdateWeights_2_4(Matrix& W1, Matrix& W2, Matrix& W3,
 					   Matrix& dEgr1_dt1, Matrix& dEgr1_dt2, Matrix& dEgr1_dt3,
 					   Matrix& dEgr2_dW1, Matrix& dEgr2_dW2, Matrix& dEgr2_dW3,
 					   Matrix& dEgr2_dt1, Matrix& dEgr2_dt2, Matrix& dEgr2_dt3,
+					   Matrix& dE_body_dW1, Matrix& dE_body_dW2, Matrix& dE_body_dW3,
+					   Matrix& dE_body_dt1, Matrix& dE_body_dt2, Matrix& dE_body_dt3,
 					   Matrix& delta_W1_k, Matrix& delta_W2_k, Matrix& delta_W3_k,
 					   Vector& delta_t1_k, Vector& delta_t2_k, Vector& delta_t3_k,
-					   std::vector<double>& vec_error, double Ev, double Egr, double Egr1, double Egr2, size_t N, size_t M, size_t M1, size_t M2)
+					   std::vector<double>& vec_error, double Ev, double Egr, double Egr1, double Egr2, double E_body, size_t N, size_t M, size_t M1, size_t M2, size_t M3)
 {
 
 //std::cout << "Start of UpdateWeights_2_4" << std::endl;
 
 //2.4 Updating the weights
 //2.4.1 
-	dE_dW1 = dEv_dW1 + dEgr_dW1 + dEgr1_dW1 + dEgr2_dW1;
+	dE_dW1 = dEv_dW1 + dEgr_dW1 + dEgr1_dW1 + dEgr2_dW1 + dE_body_dW1;
 	//std::cout << "dE_dW1: " << std::endl;
 	//dE_dW1.PrintMatrix();
 
-	dE_dt1 = dEv_dt1 + dEgr_dt1 + dEgr1_dt1 + dEgr2_dt1;
+	dE_dt1 = dEv_dt1 + dEgr_dt1 + dEgr1_dt1 + dEgr2_dt1 + dE_body_dt1;
 	//std::cout << "dE_dt1: " << std::endl;
 	//dE_dt1.PrintMatrix();
 
-	dE_dW2 = dEv_dW2 + dEgr_dW2 + dEgr1_dW2 + dEgr2_dW2;
+	dE_dW2 = dEv_dW2 + dEgr_dW2 + dEgr1_dW2 + dEgr2_dW2 + dE_body_dW2;
 	//std::cout << "dE_dW2: " << std::endl;
 	//dE_dW2.PrintMatrix();
 
-	dE_dt2 = dEv_dt2 + dEgr_dt2 + dEgr1_dt2 + dEgr2_dt2;
+	dE_dt2 = dEv_dt2 + dEgr_dt2 + dEgr1_dt2 + dEgr2_dt2 + dE_body_dt2;
 	//std::cout << "dE_dt2: " << std::endl;
 	//dE_dt2.PrintMatrix();
 
-	dE_dW3 = dEv_dW3 + dEgr_dW3 + dEgr1_dW3 + dEgr2_dW3;
+	dE_dW3 = dEv_dW3 + dEgr_dW3 + dEgr1_dW3 + dEgr2_dW3 + dE_body_dW3;
 	//std::cout << "dE_dW3: " << std::endl;
 	//dE_dW3.PrintMatrix();
 
-	dE_dt3 = dEv_dt3 + dEgr_dt3 + dEgr1_dt3 + dEgr2_dt3;
+	dE_dt3 = dEv_dt3 + dEgr_dt3 + dEgr1_dt3 + dEgr2_dt3 + dE_body_dt3;
 	//std::cout << "dE_dt3: " << std::endl;
 	//dE_dt3.PrintMatrix();
 
@@ -1123,12 +1394,13 @@ void UpdateWeights_2_4(Matrix& W1, Matrix& W2, Matrix& W3,
 	//t3.PrintVector();
 
 	//2.4.4
-	double error = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
+	double error = sqrt((Ev + Egr + Egr1 + Egr2 + E_body) / (double(N) + double(M) + double(M1) + double(M2) + double(M3)));
 	std::cout << "Error = " << error << std::endl;
 	vec_error.push_back(Ev);
 	vec_error.push_back(Egr);
 	vec_error.push_back(Egr1);
 	vec_error.push_back(Egr2);
+	vec_error.push_back(E_body);
 	vec_error.push_back(error);
 
 	//std::cout << "End of UpdateWeights_2_4" << std::endl;
@@ -1142,34 +1414,41 @@ void Verification(Matrix& W1, Matrix& W2, Matrix& W3,
 
 	//2.5/
 //2.5.1
-	std::ofstream fout("errors.txt");
+	std::ofstream fout("errors_new.txt");
 	//fout << "Vector of errors: " << std::endl;
 
 	if (fout.is_open())
 	{
-		for (size_t k = 0; k < K*5; ++k)
+		for (size_t k = 0; k < K*6; ++k)
 			fout << vec_error[k] << ' ';
 		fout << std::endl;
 	}
 	fout.close();
 	std::cout << "W1: " << std::endl;
-	W1.to_file_txt("W1.txt");
+	W1.to_file_txt("W1_new.txt");
 	W1.PrintMatrix();
 	std::cout << "W2: " << std::endl;
-	W2.to_file_txt("W2.txt");
+	W2.to_file_txt("W2_new.txt");
 	W2.PrintMatrix();
 	std::cout << "W3: " << std::endl;
-	W3.to_file_txt("W3.txt");
+	W3.to_file_txt("W3_new.txt");
 	W3.PrintMatrix();
 	std::cout << "t1: " << std::endl;
-	t1.to_file_txt("t1.txt");
+	t1.to_file_txt("t1_new.txt");
 	t1.PrintVector();
 	std::cout << "t2: " << std::endl;
-	t2.to_file_txt("t2.txt");
+	t2.to_file_txt("t2_new.txt");
 	t2.PrintVector();
 	std::cout << "t3: " << std::endl;
-	t3.to_file_txt("t3.txt");
+	t3.to_file_txt("t3_new.txt");
 	t3.PrintVector();
+
+	std::cout << "Start of Verification" << std::endl;
+
+	
+	saving_weights(W1, t1, W2, t2, W3, t3, "data1_new.bin");
+	parsing_weights(W1, t1, W2, t2, W3, t3, "data1_new.bin");
+
 	/*
 	//2.5.2
 	std::vector<std::vector<std::pair<double, double>>> grid_test;

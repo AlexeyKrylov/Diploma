@@ -78,5 +78,7 @@ public:
 
 	void to_file_txt(std::string filename) const;
 
+	void change_data(std::vector<std::vector<double>> d);
+
 	~Matrix();
 };

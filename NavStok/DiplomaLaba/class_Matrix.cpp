@@ -270,4 +270,11 @@
 		data[index] = str.data[0];
 	}
 
+	void Matrix::change_data(std::vector<std::vector<double>> d)
+	{
+		data = d;
+		nS = data.size();
+		nC = data[0].size();	
+	}
+
 	Matrix::~Matrix(){}

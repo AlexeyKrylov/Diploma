@@ -55,7 +55,11 @@ int main()
 	Matrix Xgr2;
 	size_t M2 = 0;
 
-	Initialization_2_1(W1, W2, W3, t1, t2, t3, Xv, N, Xgr, M, Xgr1, M1, Xgr2, M2);
+	Matrix X_body;
+	Matrix tau;
+	size_t M3 = 0;
+
+	Initialization_2_1(W1, W2, W3, t1, t2, t3, Xv, N, Xgr, M, Xgr1, M1, Xgr2, M2, X_body, tau, M3);
 
 	Matrix dE_dW1(L, 2);
 	Matrix dE_dt1(L, 1);
@@ -119,6 +123,16 @@ int main()
 	//std::cout << "dXgr2_dy: " << std::endl;
 	//dXgr2_dy.PrintMatrix();
 
+	std::vector<double> zero_body(M3, 0);
+	std::vector<double> one_body(M3, 1);
+
+	Matrix dX_body_dx({ one_body, zero_body }); // (41)
+	//std::cout << "dX_body_dx: " << std::endl;
+	//dX_body_dx.PrintMatrix();
+
+	Matrix dX_body_dy({ zero_body, one_body }); // (41)
+	//std::cout << "dX_body_dy: " << std::endl;
+	//dX_body_dy.PrintMatrix();
 
 	std::cout << K << std::endl;
 
@@ -150,6 +164,13 @@ int main()
 	Matrix dEgr2_dW3(3, L);
 	Matrix dEgr2_dt3(3, 1);
 	double Egr2 = 0;
+	Matrix dE_body_dW1(L, 2);
+	Matrix dE_body_dt1(L, 1);
+	Matrix dE_body_dW2(L, L);
+	Matrix dE_body_dt2(L, 1);
+	Matrix dE_body_dW3(3, L);
+	Matrix dE_body_dt3(3, 1);
+	double E_body = 0;
 
 
 	for (size_t i = 0; i < K; ++i)
@@ -177,6 +198,11 @@ int main()
 			dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
 			Egr2, N, M2);
 
+		BodyPoints(W1, W2, W3, t1, t2, t3,
+			X_body, tau, dX_body_dx, dX_body_dy,
+			dE_body_dW1, dE_body_dW2, dE_body_dW3,
+			dE_body_dt1, dE_body_dt2, dE_body_dt3,
+			E_body, N, M3);
 
 		UpdateWeights_2_4(W1, W2, W3, t1, t2, t3, 
 						  dE_dW1, dE_dW2, dE_dW3, dE_dt1, dE_dt2, dE_dt3,
@@ -185,8 +211,9 @@ int main()
 						  dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
 						  dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
 						  dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
+						  dE_body_dW1, dE_body_dW2, dE_body_dW3, dE_body_dt1, dE_body_dt2, dE_body_dt3,
 						  delta_W1_k, delta_W2_k, delta_W3_k, delta_t1_k, delta_t2_k, delta_t3_k,
-						  vec_error, Ev, Egr, Egr1, Egr2, N, M, M1, M2);
+						  vec_error, Ev, Egr, Egr1, Egr2, E_body, N, M, M1, M2, M3);
 	
 		std::cout << std::endl;
 	}
@@ -194,6 +221,7 @@ int main()
 	Verification(W1, W2, W3, t1, t2, t3, vec_error);
 	
 	std::cout << std::endl;
+	/*
 	InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
 		Xv, dXv_dx, dXv_dy,
 		dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
@@ -512,7 +540,7 @@ int main()
 		dE_dt3.PrintMatrix();
 		std::cout << "\n\n\n";
 		/////////////////////////////////////
-
+	*/
 
 	std::cout << "The End!" << std::endl;
 	

@@ -65,6 +65,12 @@ void Vector::from_file_txt(std::string filename)
 	fin.close();
 }
 
+void Vector::change_data(std::vector<double> v)
+{
+	data = v;
+	dim = data.size();
+}
+
 void Vector::to_file_txt(std::string filename) const
 {
 	std::ofstream fout(filename);

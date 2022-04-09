@@ -42,6 +42,7 @@ int main()
 	//t3.from_file_txt("T3.txt");
 	//t3.PrintVector();
 
+	double delta_alpha = lr_scheduler;
 
 	Matrix Xv;
 	size_t N = 0;
@@ -58,8 +59,9 @@ int main()
 	Matrix X_body;
 	Matrix tau;
 	size_t M3 = 0;
+	size_t N_add = 0;
 
-	Initialization_2_1(W1, W2, W3, t1, t2, t3, Xv, N, Xgr, M, Xgr1, M1, Xgr2, M2, X_body, tau, M3);
+	Initialization_2_1(W1, W2, W3, t1, t2, t3, Xv, N, Xgr, M, Xgr1, M1, Xgr2, M2, X_body, tau, M3, N_add, delta_alpha);
 
 	Matrix dE_dW1(L, 2);
 	Matrix dE_dt1(L, 1);
@@ -171,39 +173,43 @@ int main()
 	Matrix dE_body_dW3(3, L);
 	Matrix dE_body_dt3(3, 1);
 	double E_body = 0;
-
-
+	double error1;
+	double error0;
+	
 	for (size_t i = 0; i < K; ++i)
 	{
 		std::cout << "Number of iteration: " << i << std::endl;
-
+		if (K >= checkpoint - 1) delta_alpha = 1.0;
+		std::cout << "delta alpha = " << delta_alpha << std::endl;
 		
-		InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
-			Xv, dXv_dx, dXv_dy,
-			dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
-			Ev, N, M);
+			InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
+				Xv, dXv_dx, dXv_dy,
+				dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
+				Ev, N, M);
 
-		BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
-			Xgr, dXgr_dx, dXgr_dy,
-			dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
-			Egr, N, M);
 
-		BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3,
-			Xgr1, dXgr1_dx, dXgr1_dy,
-			dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
-			Egr1, N, M1);
+			BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
+				Xgr, dXgr_dx, dXgr_dy,
+				dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
+				Egr, N, M, delta_alpha);
 
-		BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3,
-			Xgr2, dXgr2_dx, dXgr2_dy,
-			dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
-			Egr2, N, M2);
+			BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3,
+				Xgr1, dXgr1_dx, dXgr1_dy,
+				dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
+				Egr1, N, M1, delta_alpha);
 
-		BodyPoints(W1, W2, W3, t1, t2, t3,
-			X_body, tau, dX_body_dx, dX_body_dy,
-			dE_body_dW1, dE_body_dW2, dE_body_dW3,
-			dE_body_dt1, dE_body_dt2, dE_body_dt3,
-			E_body, N, M3);
-
+			BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3,
+				Xgr2, dXgr2_dx, dXgr2_dy,
+				dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
+				Egr2, N, M2, delta_alpha);
+		
+		
+			BodyPoints(W1, W2, W3, t1, t2, t3,
+				X_body, tau, dX_body_dx, dX_body_dy,
+				dE_body_dW1, dE_body_dW2, dE_body_dW3,
+				dE_body_dt1, dE_body_dt2, dE_body_dt3,
+				E_body, N, M3, delta_alpha);
+		
 		UpdateWeights_2_4(W1, W2, W3, t1, t2, t3, 
 						  dE_dW1, dE_dW2, dE_dW3, dE_dt1, dE_dt2, dE_dt3,
 						  dE_dW1_k, dE_dW2_k, dE_dW3_k, dE_dt1_k, dE_dt2_k, dE_dt3_k,
@@ -213,335 +219,435 @@ int main()
 						  dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
 						  dE_body_dW1, dE_body_dW2, dE_body_dW3, dE_body_dt1, dE_body_dt2, dE_body_dt3,
 						  delta_W1_k, delta_W2_k, delta_W3_k, delta_t1_k, delta_t2_k, delta_t3_k,
-						  vec_error, Ev, Egr, Egr1, Egr2, E_body, N, M, M1, M2, M3);
+						  vec_error, Ev, Egr, Egr1, Egr2, E_body, N, M, M1, M2, M3, delta_alpha);
 	
 		std::cout << std::endl;
 	}
-
+	
 	Verification(W1, W2, W3, t1, t2, t3, vec_error);
 	
 	std::cout << std::endl;
-	/*
-	InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
-		Xv, dXv_dx, dXv_dy,
-		dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
-		Ev, N, M);
-
-	BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
-		Xgr, dXgr_dx, dXgr_dy,
-		dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
-		Egr, N, M);
-
-	BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3,
-		Xgr1, dXgr1_dx, dXgr1_dy,
-		dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
-		Egr1, N, M1);
-
-	BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3,
-		Xgr2, dXgr2_dx, dXgr2_dy,
-		dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
-		Egr2, N, M2);
-
+	
+	
 	/// /////////////////////////////////////////////////
-	double pow = 0.001;
-	double pow1 = 1000;
+	/*
+	for (int index = 0; index < 5; ++index) {
+		switch (index)
+		{
+		case 0:
+			InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
+				Xv, dXv_dx, dXv_dy,
+				dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
+				Ev, N, M);
+			error0 = Ev;
+			std::cout << "dEv_dW1: \n" << std::endl;
+			dEv_dW1.PrintMatrix();
+			std::cout << "dEv_dW2: \n" << std::endl;
+			dEv_dW2.PrintMatrix();
+			std::cout << "dEv_dW3: \n" << std::endl;
+			dEv_dW3.PrintMatrix();
+			std::cout << "dEv_dt1: \n" << std::endl;
+			dEv_dt1.PrintMatrix();
+			std::cout << "dEv_dt2: \n" << std::endl;
+			dEv_dt2.PrintMatrix();
+			std::cout << "dEv_dt3: \n" << std::endl;
+			dEv_dt3.PrintMatrix();
+			break;
+		case 1:
+			BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
+				Xgr, dXgr_dx, dXgr_dy,
+				dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
+				Egr, N, M, delta_alpha);
+			error0 = Egr;
+			std::cout << "dEgr_dW1: \n" << std::endl;
+			dEgr_dW1.PrintMatrix();
+			std::cout << "dEgr_dW2: \n" << std::endl;
+			dEgr_dW2.PrintMatrix();
+			std::cout << "dEgr_dW3: \n" << std::endl;
+			dEgr_dW3.PrintMatrix();
+			std::cout << "dEgr_dt1: \n" << std::endl;
+			dEgr_dt1.PrintMatrix();
+			std::cout << "dEgr_dt2: \n" << std::endl;
+			dEgr_dt2.PrintMatrix();
+			std::cout << "dEgr_dt3: \n" << std::endl;
+			dEgr_dt3.PrintMatrix();
+			break;
+		case 2:
+			BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3,
+				Xgr1, dXgr1_dx, dXgr1_dy,
+				dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
+				Egr1, N, M1, delta_alpha);
+			error0 = Egr1;
+			std::cout << "dEgr1_dW1: \n" << std::endl;
+			dEgr1_dW1.PrintMatrix();
+			std::cout << "dEgr1_dW2: \n" << std::endl;
+			dEgr1_dW2.PrintMatrix();
+			std::cout << "dEgr1_dW3: \n" << std::endl;
+			dEgr1_dW3.PrintMatrix();
+			std::cout << "dEgr1_dt1: \n" << std::endl;
+			dEgr1_dt1.PrintMatrix();
+			std::cout << "dEgr1_dt2: \n" << std::endl;
+			dEgr1_dt2.PrintMatrix();
+			std::cout << "dEgr1_dt3: \n" << std::endl;
+			dEgr1_dt3.PrintMatrix();
+			break;
+		case 3:
+			BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3,
+				Xgr2, dXgr2_dx, dXgr2_dy,
+				dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
+				Egr2, N, M2, delta_alpha);
+			error0 = Egr2;
+			std::cout << "dEgr2_dW1: \n" << std::endl;
+			dEgr2_dW1.PrintMatrix();
+			std::cout << "dEgr2_dW2: \n" << std::endl;
+			dEgr2_dW2.PrintMatrix();
+			std::cout << "dEgr2_dW3: \n" << std::endl;
+			dEgr2_dW3.PrintMatrix();
+			std::cout << "dEgr2_dt1: \n" << std::endl;
+			dEgr2_dt1.PrintMatrix();
+			std::cout << "dEgr2_dt2: \n" << std::endl;
+			dEgr2_dt2.PrintMatrix();
+			std::cout << "dEgr2_dt3: \n" << std::endl;
+			dEgr2_dt3.PrintMatrix();
+			break;
+		case 4:
+			BodyPoints(W1, W2, W3, t1, t2, t3,
+				X_body, tau, dX_body_dx, dX_body_dy,
+				dE_body_dW1, dE_body_dW2, dE_body_dW3,
+				dE_body_dt1, dE_body_dt2, dE_body_dt3,
+				E_body, N, M3, delta_alpha);
+			error0 = E_body;
+			std::cout << "dE_body_dW1: \n" << std::endl;
+			dE_body_dW1.PrintMatrix();
+			std::cout << "dE_body_dW2: \n" << std::endl;
+			dE_body_dW2.PrintMatrix();
+			std::cout << "dE_body_dW3: \n" << std::endl;
+			dE_body_dW3.PrintMatrix();
+			std::cout << "dE_body_dt1: \n" << std::endl;
+			dE_body_dt1.PrintMatrix();
+			std::cout << "dE_body_dt2: \n" << std::endl;
+			dE_body_dt2.PrintMatrix();
+			std::cout << "dE_body_dt3: \n" << std::endl;
+			dE_body_dt3.PrintMatrix();
+			break;
+		}
 
-		Matrix dddW1(L, 2);
-		dddW1.InitWithValue(0.0);
-		dddW1.change11elem(pow);
+		for (double pow = 0.1; pow > 10e-2; pow /= 10) {
+			
+			Matrix dddW1(L, 2);
+			Matrix W1_new(L, 2);
+			dddW1.InitWithValue(0.0);
+			dddW1.change11elem(pow);
+			W1_new = W1 + dddW1;
+			switch (index)
+			{
+			case 0:
+				InternalPoints_2_2(W1_new, W2, W3, t1, t2, t3,
+					Xv, dXv_dx, dXv_dy,
+					dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
+					Ev, N, M);
+				error1 = Ev;
+				break;
+			case 1:
+				BoundaryPoints_2_3(W1_new, W2, W3, t1, t2, t3,
+					Xgr, dXgr_dx, dXgr_dy,
+					dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
+					Egr, N, M, delta_alpha);
+				error1 = Egr;
+				break;
+			case 2:
+				BoundaryPoints_2_31(W1_new, W2, W3, t1, t2, t3,
+					Xgr1, dXgr1_dx, dXgr1_dy,
+					dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
+					Egr1, N, M1, delta_alpha);
+				error1 = Egr1;
+				break;
+			case 3:
+				BoundaryPoints_2_32(W1_new, W2, W3, t1, t2, t3,
+					Xgr2, dXgr2_dx, dXgr2_dy,
+					dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
+					Egr2, N, M2, delta_alpha);
+				error1 = Egr2;
+				break;
+			case 4:
+				BodyPoints(W1_new, W2, W3, t1, t2, t3,
+					X_body, tau, dX_body_dx, dX_body_dy,
+					dE_body_dW1, dE_body_dW2, dE_body_dW3,
+					dE_body_dt1, dE_body_dt2, dE_body_dt3,
+					E_body, N, M3, delta_alpha);
+				error1 = E_body;
+				break;
+			}
 
-		std::cout << "W1" << std::endl;
-		W1.PrintMatrix();
+			std::cout << "pow = " << pow << std::endl;
+			std::cout << "dE_dW1:" << std::endl;
+			std::cout << (error1 - error0) / pow << std::endl;
+			std::cout << "\n\n\n";
+			/// ////////////////////////////////////
 
-		W1 = W1 + dddW1;
+			Matrix dddW2(L, L);
+			Matrix W2_new(L, L);
+			dddW2.InitWithValue(0.0);
+			dddW2.change11elem(pow);
+			W2_new = W2 + dddW2;
 
-		double error666 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error666 = " << error666 << std::endl;
+			switch (index)
+			{
+			case 0:
+				InternalPoints_2_2(W1, W2_new, W3, t1, t2, t3,
+					Xv, dXv_dx, dXv_dy,
+					dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
+					Ev, N, M);
+				error1 = Ev;
+				break;
+			case 1:
+				BoundaryPoints_2_3(W1, W2_new, W3, t1, t2, t3,
+					Xgr, dXgr_dx, dXgr_dy,
+					dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
+					Egr, N, M, delta_alpha);
+				error1 = Egr;
+				break;
+			case 2:
+				BoundaryPoints_2_31(W1, W2_new, W3, t1, t2, t3,
+					Xgr1, dXgr1_dx, dXgr1_dy,
+					dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
+					Egr1, N, M1, delta_alpha);
+				error1 = Egr1;
+				break;
+			case 3:
+				BoundaryPoints_2_32(W1, W2_new, W3, t1, t2, t3,
+					Xgr2, dXgr2_dx, dXgr2_dy,
+					dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
+					Egr2, N, M2, delta_alpha);
+				error1 = Egr2;
+				break;
+			case 4:
+				BodyPoints(W1, W2_new, W3, t1, t2, t3,
+					X_body, tau, dX_body_dx, dX_body_dy,
+					dE_body_dW1, dE_body_dW2, dE_body_dW3,
+					dE_body_dt1, dE_body_dt2, dE_body_dt3,
+					E_body, N, M3, delta_alpha);
+				error1 = E_body;
+				break;
+			}
 
-		InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
-			Xv, dXv_dx, dXv_dy,
-			dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
-			Ev, N, M);
+			std::cout << "pow = " << pow << std::endl;
+			std::cout << "dE_dW2:" << std::endl;
+			std::cout << (error1 - error0) / pow << std::endl;
+			std::cout << "\n\n\n";
 
-		BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
-			Xgr, dXgr_dx, dXgr_dy,
-			dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
-			Egr, N, M);
-		BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3,
-			Xgr1, dXgr1_dx, dXgr1_dy,
-			dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
-			Egr1, N, M1);
+			///
+			Matrix dddW3(3, L);
+			Matrix W3_new(3, L);
+			dddW3.InitWithValue(0.0);
+			dddW3.change11elem(pow);
+			W3_new = W3 + dddW3;
 
-		BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3,
-			Xgr2, dXgr2_dx, dXgr2_dy,
-			dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
-			Egr2, N, M2);
-		double error777 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error777 = " << error777 << std::endl;
+			switch (index)
+			{
+			case 0:
+				InternalPoints_2_2(W1, W2, W3_new, t1, t2, t3,
+					Xv, dXv_dx, dXv_dy,
+					dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
+					Ev, N, M);
+				error1 = Ev;
+				break;
+			case 1:
+				BoundaryPoints_2_3(W1, W2, W3_new, t1, t2, t3,
+					Xgr, dXgr_dx, dXgr_dy,
+					dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
+					Egr, N, M, delta_alpha);
+				error1 = Egr;
+				break;
+			case 2:
+				BoundaryPoints_2_31(W1, W2, W3_new, t1, t2, t3,
+					Xgr1, dXgr1_dx, dXgr1_dy,
+					dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
+					Egr1, N, M1, delta_alpha);
+				error1 = Egr1;
+				break;
+			case 3:
+				BoundaryPoints_2_32(W1, W2, W3_new, t1, t2, t3,
+					Xgr2, dXgr2_dx, dXgr2_dy,
+					dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
+					Egr2, N, M2, delta_alpha);
+				error1 = Egr2;
+				break;
+			case 4:
+				BodyPoints(W1, W2, W3_new, t1, t2, t3,
+					X_body, tau, dX_body_dx, dX_body_dy,
+					dE_body_dW1, dE_body_dW2, dE_body_dW3,
+					dE_body_dt1, dE_body_dt2, dE_body_dt3,
+					E_body, N, M3, delta_alpha);
+				error1 = E_body;
+				break;
+			}
 
-		Matrix dddoW1(L, 2);
-		dddoW1.InitWithValue(0.0);
-		dddoW1.change11elem(pow1);
+			std::cout << "pow = " << pow << std::endl;
+			std::cout << "dE_dW3:" << std::endl;
+			std::cout << (error1 - error0) / pow << std::endl;
+			std::cout << "\n\n\n";
+			/////////////////////////////////////////
 
-		Matrix err1(L, 2);
-		err1.InitWithValue(0.0);
-		err1.change11elem(error777 - error666);
+			Matrix dddt1(L, 1);
+			Vector t1_new(L);
+			dddt1.InitWithValue(0.0);
+			dddt1.change11elem(pow);
+			t1_new = t1 + dddt1.toVector();
 
-		dE_dW1 = dEv_dW1 + dEgr_dW1 + dEgr1_dW1 + dEgr2_dW1;
-		std::cout << "pow = " << pow << std::endl;
-		std::cout << "err1.Mul_by_El(dddoW1)" << std::endl;
-		err1.Mul_by_El(dddoW1).PrintMatrix();
-		std::cout << "dE_dW1" << std::endl;
-		dE_dW1.PrintMatrix();
-		std::cout << "\n\n\n";
-		/// ////////////////////////////////////
+			switch (index)
+			{
+			case 0:
+				InternalPoints_2_2(W1, W2, W3, t1_new, t2, t3,
+					Xv, dXv_dx, dXv_dy,
+					dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
+					Ev, N, M);
+				error1 = Ev;
+				break;
+			case 1:
+				BoundaryPoints_2_3(W1, W2, W3, t1_new, t2, t3,
+					Xgr, dXgr_dx, dXgr_dy,
+					dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
+					Egr, N, M, delta_alpha);
+				error1 = Egr;
+				break;
+			case 2:
+				BoundaryPoints_2_31(W1, W2, W3, t1_new, t2, t3,
+					Xgr1, dXgr1_dx, dXgr1_dy,
+					dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
+					Egr1, N, M1, delta_alpha);
+				error1 = Egr1;
+				break;
+			case 3:
+				BoundaryPoints_2_32(W1, W2, W3, t1_new, t2, t3,
+					Xgr2, dXgr2_dx, dXgr2_dy,
+					dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
+					Egr2, N, M2, delta_alpha);
+				error1 = Egr2;
+				break;
+			case 4:
+				BodyPoints(W1, W2, W3, t1_new, t2, t3,
+					X_body, tau, dX_body_dx, dX_body_dy,
+					dE_body_dW1, dE_body_dW2, dE_body_dW3,
+					dE_body_dt1, dE_body_dt2, dE_body_dt3,
+					E_body, N, M3, delta_alpha);
+				error1 = E_body;
+				break;
+			}
 
-		Matrix dddW2(L, L);
-		dddW2.InitWithValue(0.0);
-		dddW2.change11elem(pow);
+			std::cout << "pow = " << pow << std::endl;
+			std::cout << "dE_dt1:" << std::endl;
+			std::cout << (error1 - error0) / pow << std::endl;
+			std::cout << "\n\n\n";
 
-		std::cout << "W2" << std::endl;
-		W2.PrintMatrix();
+			/////////////////////////////////////
 
-		W2 = W2 + dddW2;
+			Matrix dddt2(L, 1);
+			Vector t2_new(L);
+			dddt2.InitWithValue(0.0);
+			dddt2.change11elem(pow);
+			t2_new = t2 + dddt2.toVector();
+			
+			switch (index)
+			{
+			case 0:
+				InternalPoints_2_2(W1, W2, W3, t1, t2_new, t3,
+					Xv, dXv_dx, dXv_dy,
+					dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
+					Ev, N, M);
+				error1 = Ev;
+				break;
+			case 1:
+				BoundaryPoints_2_3(W1, W2, W3, t1, t2_new, t3,
+					Xgr, dXgr_dx, dXgr_dy,
+					dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
+					Egr, N, M, delta_alpha);
+				error1 = Egr;
+				break;
+			case 2:
+				BoundaryPoints_2_31(W1, W2, W3, t1, t2_new, t3,
+					Xgr1, dXgr1_dx, dXgr1_dy,
+					dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
+					Egr1, N, M1, delta_alpha);
+				error1 = Egr1;
+				break;
+			case 3:
+				BoundaryPoints_2_32(W1, W2, W3, t1, t2_new, t3,
+					Xgr2, dXgr2_dx, dXgr2_dy,
+					dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
+					Egr2, N, M2, delta_alpha);
+				error1 = Egr2;
+				break;
+			case 4:
+				BodyPoints(W1, W2, W3, t1, t2_new, t3,
+					X_body, tau, dX_body_dx, dX_body_dy,
+					dE_body_dW1, dE_body_dW2, dE_body_dW3,
+					dE_body_dt1, dE_body_dt2, dE_body_dt3,
+					E_body, N, M3, delta_alpha);
+				error1 = E_body;
+				break;
+			}
 
-		error666 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error666 = " << error666 << std::endl;
+			std::cout << "pow = " << pow << std::endl;
+			std::cout << "dE_dt2:" << std::endl;
+			std::cout << (error1 - error0) / pow << std::endl;
+			std::cout << "\n\n\n";
 
-		InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
-			Xv, dXv_dx, dXv_dy,
-			dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
-			Ev, N, M);
+			///////////////////////////////////////////////
+			Matrix dddt3(3, 1);
+			Vector t3_new(3);
+			dddt3.InitWithValue(0.0);
+			dddt3.change11elem(pow);
+			t3_new = t3 + dddt3.toVector();
 
-		BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
-			Xgr, dXgr_dx, dXgr_dy,
-			dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
-			Egr, N, M);
+			switch (index)
+			{
+			case 0:
+				InternalPoints_2_2(W1, W2, W3, t1, t2, t3_new,
+					Xv, dXv_dx, dXv_dy,
+					dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
+					Ev, N, M);
+				error1 = Ev;
+				break;
+			case 1:
+				BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3_new,
+					Xgr, dXgr_dx, dXgr_dy,
+					dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
+					Egr, N, M, delta_alpha);
+				error1 = Egr;
+				break;
+			case 2:
+				BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3_new,
+					Xgr1, dXgr1_dx, dXgr1_dy,
+					dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
+					Egr1, N, M1, delta_alpha);
+				error1 = Egr1;
+				break;
+			case 3:
+				BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3_new,
+					Xgr2, dXgr2_dx, dXgr2_dy,
+					dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
+					Egr2, N, M2, delta_alpha);
+				error1 = Egr2;
+				break;
+			case 4:
+				BodyPoints(W1, W2, W3, t1, t2, t3_new,
+					X_body, tau, dX_body_dx, dX_body_dy,
+					dE_body_dW1, dE_body_dW2, dE_body_dW3,
+					dE_body_dt1, dE_body_dt2, dE_body_dt3,
+					E_body, N, M3, delta_alpha);
+				error1 = E_body;
+				break;
+			}
 
-		error777 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error777 = " << error777 << std::endl;
+			std::cout << "pow = " << pow << std::endl;
+			std::cout << "dE_dt3:" << std::endl;
+			std::cout << (error1 - error0) / pow << std::endl;
+			std::cout << "\n\n\n";
 
-		Matrix dddoW2(L, L);
-		dddoW2.InitWithValue(0.0);
-		dddoW2.change11elem(pow1);
-
-		Matrix err2(L, L);
-		err2.InitWithValue(0.0);
-		err2.change11elem(error777 - error666);
-
-		dE_dW2 = dEv_dW2 + dEgr_dW2 + dEgr1_dW2 + dEgr2_dW2;
-		std::cout << "pow = " << pow << std::endl;
-		std::cout << "err2.Mul_by_El(dddoW2)" << std::endl;
-		err2.Mul_by_El(dddoW2).PrintMatrix();
-		std::cout << "dE_dW2" << std::endl;
-		dE_dW2.PrintMatrix();
-		std::cout << "\n\n\n";
-		///////////////////////////////////////////
-
-
-		Matrix dddW3(3, L);
-		dddW3.InitWithValue(0.0);
-		dddW3.change11elem(pow);
-
-		std::cout << "W3" << std::endl;
-		W3.PrintMatrix();
-
-		W3 = W3 + dddW3;
-
-		error666 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error666 = " << error666 << std::endl;
-
-		InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
-			Xv, dXv_dx, dXv_dy,
-			dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
-			Ev, N, M);
-
-		BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
-			Xgr, dXgr_dx, dXgr_dy,
-			dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
-			Egr, N, M);
-
-		BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3,
-			Xgr1, dXgr1_dx, dXgr1_dy,
-			dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
-			Egr1, N, M1);
-
-		BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3,
-			Xgr2, dXgr2_dx, dXgr2_dy,
-			dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
-			Egr2, N, M2);
-
-		error777 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error777 = " << error777 << std::endl;
-
-		Matrix dddoW3(3, L);
-		dddoW3.InitWithValue(0.0);
-		dddoW3.change11elem(pow1);
-
-		Matrix err(3, L);
-		err.InitWithValue(0.0);
-		err.change11elem(error777 - error666);
-
-		dE_dW3 = dEv_dW3 + dEgr_dW3 + dEgr1_dW3 + dEgr2_dW3;
-		std::cout << "pow = " << pow << std::endl;
-		std::cout << "err.Mul_by_El(dddoW3)" << std::endl;
-		err.Mul_by_El(dddoW3).PrintMatrix();
-		std::cout << "dE_dW3" << std::endl;
-		dE_dW3.PrintMatrix();
-		std::cout << "\n\n\n";
-		//////////////////////////////////////////
-
-		Matrix dddt1(L, 1);
-		dddt1.InitWithValue(0.0);
-		dddt1.change11elem(pow);
-
-		std::cout << "t1" << std::endl;
-		t1.PrintVector();
-		t1 = t1 + dddt1.toVector();
-		error666 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error666 = " << error666 << std::endl;
-
-		InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
-			Xv, dXv_dx, dXv_dy,
-			dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
-			Ev, N, M);
-
-		BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
-			Xgr, dXgr_dx, dXgr_dy,
-			dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
-			Egr, N, M);
-
-		BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3,
-			Xgr1, dXgr1_dx, dXgr1_dy,
-			dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
-			Egr1, N, M1);
-
-		BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3,
-			Xgr2, dXgr2_dx, dXgr2_dy,
-			dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
-			Egr2, N, M2);
-
-		error777 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error777 = " << error777 << std::endl;
-
-		Matrix dddot1(L, 1);
-		dddot1.InitWithValue(0.0);
-		dddot1.change11elem(pow1);
-
-		Matrix errt1(L, 1);
-		errt1.InitWithValue(0.0);
-		errt1.change11elem(error777 - error666);
-
-		dE_dt1 = dEv_dt1 + dEgr_dt1 + dEgr1_dt1 + dEgr2_dt1;
-		std::cout << "pow = " << pow << std::endl;
-		std::cout << "errt1.Mul_by_El(dddot1)" << std::endl;
-		errt1.Mul_by_El(dddot1).PrintMatrix();
-		std::cout << "dE_dt1" << std::endl;
-		dE_dt1.PrintMatrix();
-		std::cout << "\n\n\n";
-
-		/////////////////////////////////////
-
-		Matrix dddt2(L, 1);
-		dddt2.InitWithValue(0.0);
-		dddt2.change11elem(pow);
-
-		std::cout << "t2" << std::endl;
-		t2.PrintVector();
-		t2 = t2 + dddt2.toVector();
-		error666 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error666 = " << error666 << std::endl;
-
-		InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
-			Xv, dXv_dx, dXv_dy,
-			dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
-			Ev, N, M);
-
-		BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
-			Xgr, dXgr_dx, dXgr_dy,
-			dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
-			Egr, N, M);
-
-		BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3,
-			Xgr1, dXgr1_dx, dXgr1_dy,
-			dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
-			Egr1, N, M1);
-
-		BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3,
-			Xgr2, dXgr2_dx, dXgr2_dy,
-			dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
-			Egr2, N, M2);
-
-		error777 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error777 = " << error777 << std::endl;
-
-		Matrix dddot2(L, 1);
-		dddot2.InitWithValue(0.0);
-		dddot2.change11elem(pow1);
-
-		Matrix errt(L, 1);
-		errt.InitWithValue(0.0);
-		errt.change11elem(error777 - error666);
-
-		dE_dt2 = dEv_dt2 + dEgr_dt2 + dEgr1_dt2 + dEgr2_dt2;
-		std::cout << "pow = " << pow << std::endl;
-		std::cout << "errt.Mul_by_El(dddot2)" << std::endl;
-		errt.Mul_by_El(dddot2).PrintMatrix();
-		std::cout << "dE_dt2" << std::endl;
-		dE_dt2.PrintMatrix();
-		std::cout << "\n\n\n";
-		///////////////////////////////////////////////
-		Matrix dddt3(3, 1);
-		dddt3.InitWithValue(0.0);
-		dddt3.change11elem(pow);
-
-		std::cout << "t3" << std::endl;
-		t3.PrintVector();
-		t3 = t3 + dddt3.toVector();
-		error666 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error666 = " << error666 << std::endl;
-
-		InternalPoints_2_2(W1, W2, W3, t1, t2, t3,
-			Xv, dXv_dx, dXv_dy,
-			dEv_dW1, dEv_dW2, dEv_dW3, dEv_dt1, dEv_dt2, dEv_dt3,
-			Ev, N, M);
-
-		BoundaryPoints_2_3(W1, W2, W3, t1, t2, t3,
-			Xgr, dXgr_dx, dXgr_dy,
-			dEgr_dW1, dEgr_dW2, dEgr_dW3, dEgr_dt1, dEgr_dt2, dEgr_dt3,
-			Egr, N, M);
-
-		BoundaryPoints_2_31(W1, W2, W3, t1, t2, t3,
-			Xgr1, dXgr1_dx, dXgr1_dy,
-			dEgr1_dW1, dEgr1_dW2, dEgr1_dW3, dEgr1_dt1, dEgr1_dt2, dEgr1_dt3,
-			Egr1, N, M1);
-
-		BoundaryPoints_2_32(W1, W2, W3, t1, t2, t3,
-			Xgr2, dXgr2_dx, dXgr2_dy,
-			dEgr2_dW1, dEgr2_dW2, dEgr2_dW3, dEgr2_dt1, dEgr2_dt2, dEgr2_dt3,
-			Egr2, N, M2);
-
-		error777 = sqrt((Ev + Egr + Egr1 + Egr2) / (double(N) + double(M) + double(M1) + double(M2)));
-		std::cout << "error777 = " << error777 << std::endl;
-
-		Matrix dddot3(3, 1);
-		dddot3.InitWithValue(0.0);
-		dddot3.change11elem(pow1);
-
-		Matrix errt3(3, 1);
-		errt3.InitWithValue(0.0);
-		errt3.change11elem(error777 - error666);
-
-		dE_dt3 = dEv_dt3 + dEgr_dt3 + dEgr1_dt3 + dEgr2_dt3;
-		std::cout << "pow = " << pow << std::endl;
-		std::cout << "errt3.Mul_by_El(dddot3)" << std::endl;
-		errt3.Mul_by_El(dddot3).PrintMatrix();
-		std::cout << "dE_dt3" << std::endl;
-		dE_dt3.PrintMatrix();
-		std::cout << "\n\n\n";
-		/////////////////////////////////////
+		}
+	}
 	*/
-
 	std::cout << "The End!" << std::endl;
 	
 	return 0;

@@ -6,9 +6,9 @@
 //2.0.1-3.2
 class Matrix {
 private:
-	std::vector<std::vector<double>> data;
-	size_t nS;
+	double* data;
 	size_t nC;
+	size_t nS;
 
 public:
 	friend void Verification(Matrix& W1, Matrix& W2, Matrix& W3,
@@ -60,6 +60,8 @@ public:
 
 	Vector toVector() const;
 
+	void del_large_values();
+
 	double MaxElementMatrix() const;
 
 	size_t Ret_nS() const;
@@ -80,5 +82,14 @@ public:
 
 	void change_data(std::vector<std::vector<double>> d);
 
+	Matrix(Matrix const& a);
+
+	void swap(Matrix& a);
+
+	Matrix& operator=(Matrix const& a);
+
+	void norm2();
+
 	~Matrix();
+
 };

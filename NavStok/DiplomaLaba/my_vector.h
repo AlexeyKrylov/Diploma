@@ -31,5 +31,9 @@ public:
 
 	void to_file_txt(std::string filename) const;
 
+	void norm2();
+
+	void del_large_values();
+
 	~Vector();
 };

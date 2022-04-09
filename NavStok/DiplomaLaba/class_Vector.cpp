@@ -71,6 +71,23 @@ void Vector::change_data(std::vector<double> v)
 	dim = data.size();
 }
 
+void Vector::norm2()
+{
+	size_t i = 0;
+	double res = 0;
+	for (; i < dim; ++i) res += data[i];
+	i = 0;
+	res = sqrt(res);
+	for (; i < dim; ++i) data[i] /= res;
+}
+
+void Vector::del_large_values()
+{
+	for (size_t i = 0; i < dim; ++i)
+		if (data[i] > 10) data[i] = 10;
+		else if (data[i] < -10) data[i] = -10;
+}
+
 void Vector::to_file_txt(std::string filename) const
 {
 	std::ofstream fout(filename);
